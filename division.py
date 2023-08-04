@@ -33,3 +33,4 @@ if __name__ == "__main__":
         p.map(factorize, test_numbers)
     finish_2 = time.time()
     print(f"Parallel execution:", finish_2 - start_2)
+

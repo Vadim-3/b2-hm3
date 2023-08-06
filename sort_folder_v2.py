@@ -1,48 +1,38 @@
 import sys
 from pathlib import Path
-import shutil
 import os
+import shutil
 import concurrent.futures
+print('Entry:', sys.argv)
 
 if len(sys.argv) != 2:
-    print('Будь ласка введіть тільки 2 аргументи!')
+    print("Argument != 2")
     quit()
 
-# шлях до файлу який вказали у консолі
-folder = Path(sys.argv[1])
-
-# словник за яким буде йти сортування файлів на категорії
-name_folders = {
-    ('doc', 'docx', 'txt', 'pdf', 'xlsx', 'pptx'): 'documents',
-    ('png', 'jpg', 'jpeg', 'svg'): 'images',
-    ('mp3', 'wav', 'amr', 'ogg'): 'audio',
-    ('mp4', 'avi', 'mov', 'mkv'): 'video',
-    ('zip', 'gz', 'tar'): 'archive'
-}
+path_1 = Path(sys.argv[1])
 
 
-# функція для створення папок, у якіц будуть поміщені усі файли
-
-
-def create_folders(parent_folder_path):
-    folder_names = ['images', 'video',
-                    'documents', 'audio', 'archive']
-
-    for folder_name in folder_names:
-        folder_path = os.path.join(parent_folder_path, folder_name)
-        os.makedirs(folder_path, exist_ok=True)
-
-
-# функція, яка буде пейменовувати файл з кирилиці на латиницю і всі символи крім букв і цифр заміняти на '_'
+musics = []
+videos = []
+photos = []
+documents = []
+archives = []
+others = []
+know_ext = []
+unknown_ext = []
+directory_images = f"{path_1}/images"
+directory_video = f"{path_1}/video"
+directory_music = f"{path_1}/music"
+directory_documents = f"{path_1}/documents"
+directory_archives = f"{path_1}/archives"
 
 
 def normalize(name):
     last_dot_index = name.rfind('.')
     CYRILLIC_SYMBOLS = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяєіїґ"
 
-    TRANSLATION = (
-    "a", "b", "v", "g", "d", "e", "e", "j", "z", "i", "j", "k", "l", "m", "n", "o", "p", "r", "s", "t", "u",
-    "f", "h", "ts", "ch", "sh", "sch", "", "y", "", "e", "yu", "ya", "je", "i", "ji", "g")
+    TRANSLATION = ("a", "b", "v", "g", "d", "e", "e", "j", "z", "i", "j", "k", "l", "m", "n", "o", "p", "r", "s", "t", "u",
+                   "f", "h", "ts", "ch", "sh", "sch", "", "y", "", "e", "yu", "ya", "je", "i", "ji", "g")
 
     TRANS = {}
     res = ''
@@ -60,62 +50,84 @@ def normalize(name):
     return res + name[last_dot_index:]
 
 
-# основна функція, яка здійснює сортування файлів по папках
-
-
-def sort_files(folder):
-    folders = []
-    files = []
-    # проходимось по вказаній папці рекурсивною функцією і зберігаємо шляхи до файлів та папок у відповідні списки
-    if os.path.exists(folder):
-        for dirpath, dirnames, filenames in os.walk(folder):
-            for file in filenames:
-                files.append(os.path.join(dirpath, file))
-
-            for folderr in dirnames:
-                folders.append(os.path.join(dirpath, folder))
-
-    # за допомогою циклу переносимо файливи у кореневу папку
-    # використовуючи функцію normalize перейменовуємо файли
-    for fl in files:
-        new_name = normalize(os.path.basename(fl))
-        path_drctr = os.path.join(folder, new_name)
-        os.rename(fl, path_drctr)
-
-    # знову проходимось по кореневій папці і перевіряємо усі папки і підпапки, якщо вони пусті то видаляємо їх
-    for dirpath, dirnames, filenames in os.walk(folder, topdown=False):
-        for dirname in dirnames:
-            full_path = os.path.join(dirpath, dirname)
-            if not os.listdir(full_path):
-                os.rmdir(full_path)
-
-    # за допомогою цієї функції створюємо папки в які будемо сортувати файли
-    create_folders(folder)
-
-    # проходимось циклом по списку файлів
-    for i in files:
-        for key, value in name_folders.items():  # через словник беремо назви папок і розширення файлів
-            if i.lower().endswith(key):
-                filee = normalize(os.path.basename(i))
-                if value == 'archive':  # якщо це архів, то розпаковуємо його у ще одну папку, яка має назву архіва, але без розширення
-                    last_dot_index = filee.rfind('.')
-                    folder_path = os.path.join(
-                        f'{folder}\\archive', filee[:last_dot_index])
-                    shutil.unpack_archive(f'{folder}\{filee}', folder_path)
-                    os.remove(f'{folder}\{filee}')
-                else:  # переміщаємо файл із кореневої папки у вказану за значенням словника
-                    shutil.move(f'{folder}\{filee}',
-                                f'{folder}\{value}\{filee}')
-
-
-def flow(folder):
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for i in folder.iterdir():
-            executor.submit(sort_files, i)
-
-
-if __name__ == '__main__':
-    if folder.is_dir():
-        flow(folder)
+def sorted_folder(file):
+    name = file.name
+    trans_name = normalize(name)
+    x = f"{path_1}\\{trans_name}"
+    x_path = Path(x)
+    y = os.rename(file, x)
+    if file.is_dir():
+        if x_path.name == "images" or x_path.name == "video" or x_path.name == "documents" or x_path.name == "music" or x_path.name == "archives":
+            pass
+        if not os.listdir(x):
+            os.rmdir(x)
+        else:
+            sorted_folder(x_path)
     else:
-        print("This is not a folder")
+        if x.endswith(".mp3") or x.endswith('.ogg') or x.endswith('.wav') or x.endswith('.amr'):
+            musics.append(trans_name)
+            if not os.path.exists(directory_music):
+                os.makedirs(directory_music)
+            shutil.move(x, directory_music)
+            if x_path.suffix in know_ext:
+                pass
+            else:
+                know_ext.append(x_path.suffix)
+        elif x.endswith(".avi") or x.endswith('.mp4') or x.lower().endswith('.mov') or x.endswith('.mkv'):
+            videos.append(trans_name)
+            if not os.path.exists(directory_video):
+                os.makedirs(directory_video)
+            shutil.move(x, directory_video)
+            if x_path.suffix in know_ext:
+                pass
+            else:
+                know_ext.append(x_path.suffix)
+        elif x.endswith('.jpeg') or x.endswith('.png') or x.endswith('.jpg') or x.endswith('.svg'):
+            photos.append(trans_name)
+            if not os.path.exists(directory_images):
+                os.makedirs(directory_images)
+            shutil.move(x, directory_images)
+            if x_path.suffix in know_ext:
+                pass
+            else:
+                know_ext.append(x_path.suffix)
+        elif x.endswith('.doc') or x.endswith('.docx') or x.endswith('.txt') or x.endswith('.pdf') or x.endswith('xlsx') or x.endswith('.pptx') or x.endswith('.ppt'):
+            documents.append(trans_name)
+            if not os.path.exists(directory_documents):
+                os.makedirs(directory_documents)
+            shutil.move(x, directory_documents)
+            if x_path.suffix in know_ext:
+                pass
+            else:
+                know_ext.append(x_path.suffix)
+        elif x.endswith('.zip') or x.endswith('.gz') or x.endswith('.tar'):
+            archives.append(trans_name)
+            if not os.path.exists(directory_archives):
+                os.makedirs(directory_archives)
+            unpack_folder = os.path.splitext(trans_name)[0]
+            b = f"{directory_archives}/{unpack_folder}"
+            unpack = shutil.unpack_archive(x, b)
+            os.remove(x)
+            if x_path.suffix in know_ext:
+                pass
+            else:
+                know_ext.append(x_path.suffix)
+        else:
+            others.append(trans_name)
+            if x_path.suffix in unknown_ext:
+                pass
+            else:
+                unknown_ext.append(x_path.suffix)
+
+
+def flow_sort(path_1):
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for i in path_1.iterdir():
+            executor.submit(sorted_folder, i)
+
+
+if path_1.is_dir():
+    flow_sort(path_1)
+    print('Done!')
+else:
+    print("This is not a folder")
